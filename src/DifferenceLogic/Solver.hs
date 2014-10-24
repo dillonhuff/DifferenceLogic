@@ -42,10 +42,6 @@ buildLiteralEdge namesToNodes (ZLiteral l r Leq c) = (lNode, rNode, c)
   where
     lNode = fromJust $ M.lookup l namesToNodes
     rNode = fromJust $ M.lookup r namesToNodes
-buildLiteralEdge namesToNodes (ZLiteral l r Gt c) = (rNode, lNode, -c)
-  where
-    lNode = fromJust $ M.lookup l namesToNodes
-    rNode = fromJust $ M.lookup r namesToNodes
 buildLiteralEdge _ l = error $ "Trying to build literal from " ++ show l
 
 data Predicate
