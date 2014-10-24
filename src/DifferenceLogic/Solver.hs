@@ -4,6 +4,7 @@ module DifferenceLogic.Solver(
   eq, gt, lt, geq, leq,
   satisfiableOverZ) where
 
+import Data.Graph.Inductive.Graph as G
 import Data.List as L
 import Data.Set as S
 
@@ -38,4 +39,11 @@ leq = Leq
 geq = Geq
 
 satisfiableOverZ :: ZFormula -> Bool
-satisfiableOverZ formula = False
+satisfiableOverZ formula = False --not $ zContainsNegCycle $ zFormulaGraph formula
+
+--zFormulaGraph :: (Graph gr) => ZFormula -> gr String Int
+zFormulaGraph formula = G.empty
+
+zContainsNegCycle :: (Graph gr) => gr String Int -> Bool
+zContainsNegCycle formulaGraph = False
+
