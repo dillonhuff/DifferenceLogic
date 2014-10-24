@@ -90,27 +90,54 @@ containsNegCycle formulaGraph = case isEmpty formulaGraph of
   True -> False
   False -> negCycleFrom headNode graphNodes graphEdges
   where
-    graphNodes = labNodes formulaGraph
+    graphNodes = nodes formulaGraph
     graphEdges = labEdges formulaGraph
     headNode = head graphNodes
 
-negCycleFrom :: LNode String -> [LNode String] -> [LEdge Int] -> Bool
+negCycleFrom :: Node -> [Node] -> [LEdge Int] -> Bool
 negCycleFrom source nodes edges = checkNegCycle edges weights
   where
     initialWeights = M.fromList $ L.zip nodes $ L.map (initWeight source) nodes
-    weights = computeWeights nodes edges initialWeights 0
+    weights = computeWeights nodes edges M.empty initialWeights 0
 
-initWeight :: LNode String -> LNode String -> Int
+initWeight :: Node -> Node -> Int
 initWeight source node = case source == node of
   True -> 0
   False -> maxBound :: Int
 
-computeWeights :: [LNode String] ->
+computeWeights :: [Node] ->
                   [LEdge Int] ->
-                  Map (LNode String) Int ->
+                  Map Node Node ->
+                  Map Node Int ->
                   Int ->
-                  Map (LNode String) Int
-computeWeights nodes edges weights i = weights
+                  Map Node Int
+computeWeights nodes edges predecessors weights i = case i == L.length nodes of
+  True -> weights
+  False -> computeWeights nodes edges newPredecessors newWeights (i + 1)
+  where
+    (newWeights, newPredecessors) = updateWeightsAndPreds edges weights predecessors
 
-checkNegCycle :: [LEdge Int] -> Map (LNode String) Int -> Bool
-checkNegCycle edges weights = False
+updateWeightsAndPreds :: [LEdge Int] ->
+                         Map Node Int ->
+                         Map Node Node ->
+                         (Map Node Int, Map Node Node)
+updateWeightsAndPreds edges weights preds = L.foldl updateEdge (weights, preds) edges
+
+updateEdge :: (Map Node Int, Map Node Node) -> LEdge Int -> (Map Node Int, Map Node Node)
+updateEdge (weights, preds) (u, v, w) = case wu + w < wv of
+  True -> (M.insert v (wu + v) weights, M.insert v u preds)
+  False -> (weights, preds)
+  where
+    wu = fromJust $ M.lookup u weights
+    wv = fromJust $ M.lookup v weights
+
+checkNegCycle :: [LEdge Int] -> Map Node Int -> Bool
+checkNegCycle edges weights = L.or negCycleChecks
+  where
+    negCycleChecks = L.map (checkEdgeForNegCycle weights) edges
+
+checkEdgeForNegCycle :: Map Node Int -> LEdge Int -> Bool
+checkEdgeForNegCycle weights (u, v, w) = wu + w < wv
+  where
+    wu = fromJust $ M.lookup u weights
+    wv = fromJust $ M.lookup v weights
