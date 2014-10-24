@@ -41,7 +41,7 @@ buildLiteralEdge namesToNodes (ZLiteral l r Leq c) = (lNode, rNode, c)
   where
     lNode = fromJust $ M.lookup l namesToNodes
     rNode = fromJust $ M.lookup r namesToNodes
-buildLiteralEdge namesToNodes (ZLiteral l r Gt c) = (rNode, lNode, c)
+buildLiteralEdge namesToNodes (ZLiteral l r Gt c) = (rNode, lNode, -c)
   where
     lNode = fromJust $ M.lookup l namesToNodes
     rNode = fromJust $ M.lookup r namesToNodes
@@ -68,7 +68,7 @@ consistentOverZ formula = not $ containsNegCycle formulaGraph
     nodeList = buildNodeList normedForm
     litNameNodeMap = M.fromList $ L.map (\(n, s) -> (s, n)) nodeList
     edgeList = buildEdgeList normedForm litNameNodeMap
-    formulaGraph = mkGraph nodeList edgeList
+    formulaGraph = mkGraph nodeList edgeList :: Gr String Int
 
 buildNodeList :: ZFormula -> [(Node, String)]
 buildNodeList (ZFormula lits) = L.zip [1..(length litNames)] litNames
@@ -125,7 +125,7 @@ updateWeightsAndPreds edges weights preds = L.foldl updateEdge (weights, preds) 
 
 updateEdge :: (Map Node Int, Map Node Node) -> LEdge Int -> (Map Node Int, Map Node Node)
 updateEdge (weights, preds) (u, v, w) = case wu + w < wv of
-  True -> (M.insert v (wu + v) weights, M.insert v u preds)
+  True -> (M.insert v (wu + w) weights, M.insert v u preds)
   False -> (weights, preds)
   where
     wu = fromJust $ M.lookup u weights
