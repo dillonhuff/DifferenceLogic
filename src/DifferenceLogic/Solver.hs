@@ -28,9 +28,10 @@ data ZLiteral = ZLiteral {
 zLit = ZLiteral
 
 normalizeLiteral :: ZLiteral -> [ZLiteral]
-normalizeLiteral (ZLiteral l r Eq c) = [zLit l r leq c, zLit l r gt (c - 1)]
+normalizeLiteral (ZLiteral l r Eq c) = [zLit l r leq c, zLit r l leq (-c)]
 normalizeLiteral (ZLiteral l r Lt c) = [zLit l r leq (c - 1)]
-normalizeLiteral (ZLiteral l r Geq c) = [zLit l r gt (c - 1)]
+normalizeLiteral (ZLiteral l r Gt c) = [zLit r l leq (-(c - 1))]
+normalizeLiteral (ZLiteral l r Geq c) = [zLit r l leq (-c)]
 normalizeLiteral l = [l]
 
 literalNames :: ZLiteral -> [String]
