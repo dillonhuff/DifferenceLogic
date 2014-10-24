@@ -4,7 +4,7 @@ import DifferenceLogic.Solver
 import DifferenceLogic.TestUtils
 
 allSolverTests = do
-  testFunction satisfiableOverZ tSatCases
+  testFunction consistentOverZ tSatCases
 
 tSatCases =
   [(zF [zLit "a" "b" eq 10], True),
