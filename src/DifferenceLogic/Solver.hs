@@ -1,9 +1,10 @@
 module DifferenceLogic.Solver(
+  ZFormula, ZLiteral,
   integerDifferenceLogic,
   zF,
   zLit,
   eq, gt, lt, geq, leq,
-  consistentOverZ) where
+  decideSatisfiability) where
 
 import Data.Graph.Inductive.Graph
 import Data.Graph.Inductive.PatriciaTree
@@ -16,7 +17,7 @@ import FirstOrderTheory.Syntax
 import FirstOrderTheory.Theory as T
 import FirstOrderTheory.Utils as U
 
--- FirstOrderTheory implementation for difference logic
+-- | FirstOrderTheory implementation for integer difference logic
 data IntegerDifferenceLogic = IDF
 
 integerDifferenceLogic = IDF
@@ -26,7 +27,7 @@ instance FirstOrderTheory IntegerDifferenceLogic where
   sorts t = S.singleton $ U.sort "Integer"
   predicates t = S.fromList [eqPred, leqPred, geqPred, ltPred, gtPred]
   functions t = S.singleton minusFunc
-  decideSat t lits = case consistentOverZ $ zF $ S.toList $ S.map toZLiteral lits of
+  decideSat t lits = case decideSatisfiability $ zF $ S.toList $ S.map toZLiteral lits of
     True -> (True, S.empty)
     False -> (False, lits)
 
@@ -38,13 +39,15 @@ geqPred = predicateDecl ">=" 2 [U.sort "Integer", U.sort "Integer"]
 ltPred = predicateDecl "<" 2 [U.sort "Integer", U.sort "Integer"]
 gtPred = predicateDecl ">" 2 [U.sort "Integer", U.sort "Integer"]
 
--- Basic data structures specific to this theory
+-- |A conjunction of literals in integer difference logic
 data ZFormula = ZFormula (Set ZLiteral)
                 deriving (Eq, Ord, Show)
 
+-- | Make a conjuction of literals in integer difference logic
 zF :: [ZLiteral] -> ZFormula
 zF litList = ZFormula $ S.fromList litList
 
+-- |Literal of the form 'a - b <predicate> <integer constant>
 data ZLiteral = ZLiteral {
   left :: String,
   right :: String,
@@ -52,10 +55,51 @@ data ZLiteral = ZLiteral {
   const :: Int
   } deriving (Eq, Ord, Show)
 
+-- |'zLit a b <pred> c' returns the literal 'a - b <pred> c'
 zLit = ZLiteral
 
 toZLiteral :: Literal -> ZLiteral
-toZLiteral l = ZLiteral "a" "b" Eq 10
+toZLiteral l = case isNeg l of
+  True -> negateZLit $ toZLit predL
+  False -> toZLit predL
+  where
+    predL = getAtom l
+
+toZLit :: Atom -> ZLiteral
+toZLit a = case predicateName a of
+  "=" -> ZLiteral leftVar rightVar Eq constVal
+  ">" -> ZLiteral leftVar rightVar Gt constVal
+  "<" -> ZLiteral leftVar rightVar Lt constVal
+  "<=" -> ZLiteral leftVar rightVar Leq constVal
+  ">=" -> ZLiteral leftVar rightVar Geq constVal
+  other -> error $ "Predicate " ++ other ++ " is not supported"
+  where
+    args = extractArgs a
+    leftVar = varName $ args !! 0
+    rightVar = varName $ args !! 1
+    constVal = intVal $ args !! 2
+
+extractArgs :: Atom -> [Term]
+extractArgs a = case length pArgs /= 2 of
+  True -> error $ "Too many arguments to " ++ show a
+  False -> vars ++ [const]
+  where
+    pArgs = atomArgs a
+    vars = extractVars pArgs
+    const = head $ tail pArgs
+
+extractVars :: [Term] -> [Term]
+extractVars (x:y:[]) = case isFunctionWithName "-" x of
+  True -> funcArgs x
+  False -> error $ show x ++ " is not a valid function in integer difference logic"
+
+negateZLit :: ZLiteral -> ZLiteral
+negateZLit (ZLiteral l r Lt c) = ZLiteral l r Geq c
+negateZLit (ZLiteral l r Gt c) = ZLiteral l r Leq c
+negateZLit (ZLiteral l r Geq c) = ZLiteral l r Lt c
+negateZLit (ZLiteral l r Leq c) = ZLiteral l r Gt c
+negateZLit eqLit@(ZLiteral l r Eq c) =
+  error $ "Error: Cannot negate " ++ show eqLit ++ ", this solver does not currently support disequality"
 
 normalizeLiteral :: ZLiteral -> [ZLiteral]
 normalizeLiteral (ZLiteral l r Eq c) = [zLit l r leq c, zLit r l leq (-c)]
@@ -82,16 +126,21 @@ data Predicate
   | Geq
     deriving (Eq, Ord, Show)
 
+-- |Predicate '='
 eq = Eq
+-- |Predicate '<'
 lt = Lt
+-- |Predicate '>'
 gt = Gt
+-- |Predicate '<='
 leq = Leq
+-- |Predicate '>='
 geq = Geq
 
 -- Solver for conjunctions of literals
 
-consistentOverZ :: ZFormula -> Bool
-consistentOverZ formula = not $ containsNegCycle formulaGraph
+decideSatisfiability :: ZFormula -> Bool
+decideSatisfiability formula = not $ containsNegCycle formulaGraph
   where
     normedForm = normalizeFormula formula
     nodeList = buildNodeList normedForm
