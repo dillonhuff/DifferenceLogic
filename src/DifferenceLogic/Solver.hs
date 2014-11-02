@@ -1,4 +1,5 @@
 module DifferenceLogic.Solver(
+  integerDifferenceLogic,
   zF,
   zLit,
   eq, gt, lt, geq, leq,
@@ -11,7 +12,33 @@ import Data.Map as M
 import Data.Maybe
 import Data.Set as S
 
--- This solver solves conjuctions of literals
+import FirstOrderTheory.Syntax
+import FirstOrderTheory.Theory as T
+import FirstOrderTheory.Utils as U
+
+-- FirstOrderTheory implementation for difference logic
+data IntegerDifferenceLogic = IDF
+
+integerDifferenceLogic = IDF
+
+instance FirstOrderTheory IntegerDifferenceLogic where
+  theoryName t = "IntegerDifferenceLogic"
+  sorts t = S.singleton $ U.sort "Integer"
+  predicates t = S.fromList [eqPred, leqPred, geqPred, ltPred, gtPred]
+  functions t = S.singleton minusFunc
+  decideSat t lits = case consistentOverZ $ zF $ S.toList $ S.map toZLiteral lits of
+    True -> (True, S.empty)
+    False -> (False, lits)
+
+minusFunc = functionDecl "-" 2 [U.sort "Integer", U.sort "Integer"] (U.sort "Integer")
+
+eqPred = predicateDecl "=" 2 [U.sort "Integer", U.sort "Integer"]
+leqPred = predicateDecl "<=" 2 [U.sort "Integer", U.sort "Integer"]
+geqPred = predicateDecl ">=" 2 [U.sort "Integer", U.sort "Integer"]
+ltPred = predicateDecl "<" 2 [U.sort "Integer", U.sort "Integer"]
+gtPred = predicateDecl ">" 2 [U.sort "Integer", U.sort "Integer"]
+
+-- Basic data structures specific to this theory
 data ZFormula = ZFormula (Set ZLiteral)
                 deriving (Eq, Ord, Show)
 
@@ -26,6 +53,9 @@ data ZLiteral = ZLiteral {
   } deriving (Eq, Ord, Show)
 
 zLit = ZLiteral
+
+toZLiteral :: Literal -> ZLiteral
+toZLiteral l = ZLiteral "a" "b" Eq 10
 
 normalizeLiteral :: ZLiteral -> [ZLiteral]
 normalizeLiteral (ZLiteral l r Eq c) = [zLit l r leq c, zLit r l leq (-c)]
@@ -57,6 +87,8 @@ lt = Lt
 gt = Gt
 leq = Leq
 geq = Geq
+
+-- Solver for conjunctions of literals
 
 consistentOverZ :: ZFormula -> Bool
 consistentOverZ formula = not $ containsNegCycle formulaGraph
