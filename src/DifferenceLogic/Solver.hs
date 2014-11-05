@@ -1,6 +1,7 @@
 module DifferenceLogic.Solver(
-  ZFormula, ZLiteral,
+  IntegerDifferenceLogic,
   integerDifferenceLogic,
+  ZFormula, ZLiteral,
   zF,
   zLit,
   eq, gt, lt, geq, leq,
@@ -29,7 +30,7 @@ instance FirstOrderTheory IntegerDifferenceLogic where
   functions t = S.singleton minusFunc
   decideSat t lits = case decideSatisfiability $ zF $ S.toList $ S.map toZLiteral lits of
     True -> (True, S.empty)
-    False -> (False, lits)
+    False -> (False, S.map negateLit lits)
 
 minusFunc = functionDecl "-" 2 [U.sort "Integer", U.sort "Integer"] (U.sort "Integer")
 
