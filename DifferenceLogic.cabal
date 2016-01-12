@@ -25,5 +25,5 @@ cabal-version:       >=1.8
 library
   exposed-modules:     DifferenceLogic.Solver
   -- other-modules:       
-  build-depends:       base ==4.6.*, containers ==0.5.*, HUnit ==1.2.*, fgl, FirstOrderTheory
+  build-depends:       base >=4.6 && <4.9, containers ==0.5.*, HUnit ==1.2.*, fgl, FirstOrderTheory
   hs-source-dirs:      src
